@@ -1,25 +1,35 @@
-import Driver from "./Driver";
 import { useEffect, useState } from "react";
 import { supabase } from "./lib/supabase";
+import Driver from "./Driver";
 import LiveMap from "./LiveMap";
+
 const STATUS = ["booked","in_transit","delivered","invoiced","paid"];
 
 export default function App() {
 
-  // 🔵 MODE SWITCH
+  // 🔵 MODE SWITCH (ONLY ONCE!)
   const [mode, setMode] = useState("dispatcher");
 
   const [loads,setLoads] = useState([]);
-  const [form,setForm] = useState({origin:"",destination:"",rate:"",status:"booked"});
+  const [form,setForm] = useState({
+    origin:"",
+    destination:"",
+    rate:"",
+    status:"booked"
+  });
   const [msg,setMsg] = useState("");
 
-  // ✅ AI STATE
+  // AI STATE
   const [aiText,setAiText] = useState("");
   const [aiResult,setAiResult] = useState("");
   const [aiLoading,setAiLoading] = useState(false);
 
   async function fetchLoads(){
-    const {data} = await supabase.from("loads").select("*").order("id");
+    const {data} = await supabase
+      .from("loads")
+      .select("*")
+      .order("id");
+
     setLoads(data || []);
   }
 
@@ -36,17 +46,25 @@ export default function App() {
     if(error) setMsg(error.message);
     else{
       setMsg("Load Created");
-      setForm({origin:"",destination:"",rate:"",status:"booked"});
+      setForm({
+        origin:"",
+        destination:"",
+        rate:"",
+        status:"booked"
+      });
       fetchLoads();
     }
   }
 
   async function updateStatus(id,status){
-    await supabase.from("loads").update({status}).eq("id",id);
+    await supabase
+      .from("loads")
+      .update({status})
+      .eq("id",id);
+
     fetchLoads();
   }
 
-  // ✅ AI EXTRACT LOAD
   async function handleAiFill(){
     if(!aiText) return;
 
@@ -71,11 +89,11 @@ export default function App() {
         });
 
         setAiResult(data.analysis || "Load extracted.");
-      }else{
+      } else {
         setAiResult("AI failed.");
       }
 
-    }catch(err){
+    } catch(err){
       setAiResult("Error connecting AI.");
     }
 
@@ -84,11 +102,9 @@ export default function App() {
 
   useEffect(()=>{ fetchLoads(); },[]);
 
-  // 🔴 DRIVER MODE RETURN
-  const [mode, setMode] = useState("dispatcher");
-
-if (mode === "driver") return <Driver />;
-if (mode === "map") return <LiveMap />;
+  // 🔴 DRIVER MODE
+  if (mode === "driver") {
+    return (
       <div>
         <div className="p-4 bg-slate-100">
           <button
@@ -103,25 +119,43 @@ if (mode === "map") return <LiveMap />;
     );
   }
 
+  // 🟣 MAP MODE
+  if (mode === "map") {
+    return (
+      <div>
+        <div className="p-4 bg-slate-100">
+          <button
+            onClick={() => setMode("dispatcher")}
+            className="text-sm text-blue-600 underline"
+          >
+            ← Back to Dispatcher
+          </button>
+        </div>
+        <LiveMap />
+      </div>
+    );
+  }
+
   // 🟢 DISPATCHER UI
   return (
     <div className="min-h-screen p-6 bg-slate-100">
       <div className="max-w-6xl mx-auto">
 
-        {/* MODE SWITCH BUTTON */}
-        <div className="flex justify-end mb-3">
+        {/* MODE BUTTONS */}
+        <div className="flex justify-end mb-3 space-x-4">
           <button
             onClick={() => setMode("driver")}
             className="text-sm text-indigo-600 underline"
           >
-            Switch to Driver Mode
+            Driver Mode
           </button>
+
           <button
-  onClick={() => setMode("map")}
-  className="text-xs text-purple-600 ml-3"
->
-  Live Map
-</button>
+            onClick={() => setMode("map")}
+            className="text-sm text-purple-600 underline"
+          >
+            Live Map
+          </button>
         </div>
 
         <h1 className="text-4xl font-bold mb-6 bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text">
@@ -130,7 +164,7 @@ if (mode === "map") return <LiveMap />;
 
         <div className="grid md:grid-cols-3 gap-6 mb-6">
 
-          {/* ================= AI PANEL ================= */}
+          {/* AI PANEL */}
           <div className="bg-white p-6 rounded-2xl shadow-lg md:col-span-3">
             <h2 className="font-semibold mb-3 text-purple-600">
               AI Dispatcher Assistant
@@ -159,7 +193,7 @@ if (mode === "map") return <LiveMap />;
             )}
           </div>
 
-          {/* ================= CREATE LOAD ================= */}
+          {/* CREATE LOAD */}
           <div className="bg-white p-6 rounded-2xl shadow-lg">
             <h2 className="font-semibold mb-4">Create Load</h2>
 
@@ -170,12 +204,14 @@ if (mode === "map") return <LiveMap />;
                 value={form.origin}
                 onChange={e=>setForm({...form,origin:e.target.value})}
               />
+
               <input
                 className="w-full p-2 border rounded-lg"
                 placeholder="Destination"
                 value={form.destination}
                 onChange={e=>setForm({...form,destination:e.target.value})}
               />
+
               <input
                 className="w-full p-2 border rounded-lg"
                 placeholder="Rate"
@@ -199,16 +235,23 @@ if (mode === "map") return <LiveMap />;
             {msg && <p className="text-sm text-blue-600 mt-2">{msg}</p>}
           </div>
 
-          {/* ================= LOADS LIST ================= */}
+          {/* LOADS LIST */}
           <div className="md:col-span-2 bg-white p-6 rounded-2xl shadow-lg">
             <h2 className="font-semibold mb-4">Loads</h2>
 
             <div className="space-y-3">
               {loads.map(l=>(
-                <div key={l.id} className="flex justify-between items-center p-4 bg-slate-50 rounded-xl">
+                <div
+                  key={l.id}
+                  className="flex justify-between items-center p-4 bg-slate-50 rounded-xl"
+                >
                   <div>
-                    <div className="font-semibold">{l.origin} → {l.destination}</div>
-                    <div className="text-sm text-slate-500">${l.rate}</div>
+                    <div className="font-semibold">
+                      {l.origin} → {l.destination}
+                    </div>
+                    <div className="text-sm text-slate-500">
+                      ${l.rate}
+                    </div>
                   </div>
 
                   <select
@@ -221,7 +264,9 @@ if (mode === "map") return <LiveMap />;
                 </div>
               ))}
 
-              {loads.length===0 && <p className="text-slate-400">No loads yet</p>}
+              {loads.length===0 &&
+                <p className="text-slate-400">No loads yet</p>
+              }
             </div>
           </div>
 
