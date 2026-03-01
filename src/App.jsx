@@ -117,6 +117,33 @@ function LoadsView() {
 
   return (
     <div className="space-y-6">
+            <div className="rounded-2xl border bg-white p-4 shadow-sm">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <div className="text-sm font-semibold text-slate-900">
+              AI Load Assistant
+            </div>
+            <div className="text-xs text-slate-500">
+              Paste a load message → AI fills the form.
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={aiFill}
+            disabled={aiLoading}
+            className="px-4 py-2 rounded-xl bg-slate-900 text-white text-sm font-medium disabled:opacity-60"
+          >
+            {aiLoading ? "Working..." : "AI Fill"}
+          </button>
+        </div>
+
+        <textarea
+          value={aiText}
+          onChange={(e) => setAiText(e.target.value)}
+          placeholder={`Example: Pickup Dallas TX tomorrow 9am, deliver Los Angeles Friday, rate 2500, status invoiced`}
+          className="mt-3 w-full min-h-[90px] border rounded-xl px-3 py-2 text-sm"
+        />
+      </div>
       {/* Create form */}
       <form onSubmit={createLoad} className="bg-white rounded border p-4 grid md:grid-cols-5 gap-3">
         <input value={form.origin} onChange={e=>setForm(f=>({...f, origin:e.target.value}))} className="border rounded px-3 py-2" placeholder="Origin" />
