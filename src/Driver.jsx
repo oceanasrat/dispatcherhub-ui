@@ -5,48 +5,70 @@ export default function Driver() {
   const [driverId, setDriverId] = useState("");
   const [tracking, setTracking] = useState(false);
   const [status, setStatus] = useState("offline");
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
-  if (!tracking) return;
+    if (!tracking || !driverId) return;
 
-  navigator.geolocation.getCurrentPosition(
-    (position) => {
-      alert("GPS WORKING: " + position.coords.latitude);
-    },
-    (err) => {
-      alert("GPS ERROR: " + err.message);
+    if (!navigator.geolocation) {
+      setMessage("Geolocation not supported");
+      return;
     }
-  );
-}, [tracking]);
 
     const watchId = navigator.geolocation.watchPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
 
-        await supabase
+        const { error } = await supabase
           .from("drivers")
           .update({
-    lat: latitude,
-    lng: longitude,
-    status: "online",
-    updated_at: new Date()
-  })
-  .eq("id", driverId);
+            lat: latitude,
+            lng: longitude,
+            status: "online",
+            updated_at: new Date().toISOString()
+          })
+          .eq("id", driverId);
 
-if (error) {
-  console.log("Update error:", error);
-}
-
-        setStatus("online");
+        if (error) {
+          console.error("Update error:", error);
+          setMessage("Database update failed");
+        } else {
+          setStatus("online");
+          setMessage("Location updating...");
+        }
       },
       (err) => {
-        console.error(err);
+        console.error("GPS error:", err);
+        setMessage("Location permission denied");
       },
-      { enableHighAccuracy: true }
+      {
+        enableHighAccuracy: true,
+        maximumAge: 0,
+        timeout: 10000
+      }
     );
 
     return () => navigator.geolocation.clearWatch(watchId);
   }, [tracking, driverId]);
+
+  const startTracking = () => {
+    if (!driverId) {
+      alert("Please enter your Driver ID");
+      return;
+    }
+    setTracking(true);
+  };
+
+  const stopTracking = async () => {
+    await supabase
+      .from("drivers")
+      .update({ status: "offline" })
+      .eq("id", driverId);
+
+    setTracking(false);
+    setStatus("offline");
+    setMessage("Tracking stopped");
+  };
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-6">
@@ -63,21 +85,40 @@ if (error) {
           className="w-full border p-2 rounded mb-4"
         />
 
-        <button
-          onClick={() => setTracking(true)}
-          className="w-full bg-green-600 text-white py-2 rounded-lg mb-4"
-        >
-          Start Tracking
-        </button>
+        {!tracking ? (
+          <button
+            onClick={startTracking}
+            className="w-full bg-green-600 text-white py-2 rounded-lg mb-4"
+          >
+            Start Tracking
+          </button>
+        ) : (
+          <button
+            onClick={stopTracking}
+            className="w-full bg-red-600 text-white py-2 rounded-lg mb-4"
+          >
+            Stop Tracking
+          </button>
+        )}
 
-        <div className="text-center">
+        <div className="text-center mb-2">
           Status:
-          <span className={`ml-2 font-semibold ${status === "online" ? "text-green-600" : "text-red-600"}`}>
+          <span
+            className={`ml-2 font-semibold ${
+              status === "online" ? "text-green-600" : "text-red-600"
+            }`}
+          >
             {status}
           </span>
         </div>
 
-        <p className="text-xs text-gray-500 mt-4 text-center">
+        {message && (
+          <div className="text-xs text-gray-500 text-center">
+            {message}
+          </div>
+        )}
+
+        <p className="text-xs text-gray-400 mt-4 text-center">
           Keep this page open while driving.
         </p>
       </div>
