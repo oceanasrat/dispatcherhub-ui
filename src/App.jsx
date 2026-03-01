@@ -5,6 +5,10 @@ import { supabase } from "./lib/supabase";
 const STATUS = ["booked","in_transit","delivered","invoiced","paid"];
 
 export default function App() {
+
+  // 🔵 MODE SWITCH
+  const [mode, setMode] = useState("dispatcher");
+
   const [loads,setLoads] = useState([]);
   const [form,setForm] = useState({origin:"",destination:"",rate:"",status:"booked"});
   const [msg,setMsg] = useState("");
@@ -21,6 +25,7 @@ export default function App() {
 
   async function createLoad(e){
     e.preventDefault();
+
     const {error} = await supabase.from("loads").insert({
       origin:form.origin,
       destination:form.destination,
@@ -79,9 +84,37 @@ export default function App() {
 
   useEffect(()=>{ fetchLoads(); },[]);
 
+  // 🔴 DRIVER MODE RETURN
+  if (mode === "driver") {
+    return (
+      <div>
+        <div className="p-4 bg-slate-100">
+          <button
+            onClick={() => setMode("dispatcher")}
+            className="text-sm text-blue-600 underline"
+          >
+            ← Back to Dispatcher
+          </button>
+        </div>
+        <Driver />
+      </div>
+    );
+  }
+
+  // 🟢 DISPATCHER UI
   return (
     <div className="min-h-screen p-6 bg-slate-100">
       <div className="max-w-6xl mx-auto">
+
+        {/* MODE SWITCH BUTTON */}
+        <div className="flex justify-end mb-3">
+          <button
+            onClick={() => setMode("driver")}
+            className="text-sm text-indigo-600 underline"
+          >
+            Switch to Driver Mode
+          </button>
+        </div>
 
         <h1 className="text-4xl font-bold mb-6 bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text">
           DispatcherHub PRO
