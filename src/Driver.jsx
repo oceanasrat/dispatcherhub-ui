@@ -16,12 +16,16 @@ export default function Driver() {
         await supabase
           .from("drivers")
           .update({
-            lat: latitude,
-            lng: longitude,
-            status: "online",
-            updated_at: new Date()
-          })
-          .eq("id", driverId);
+    lat: latitude,
+    lng: longitude,
+    status: "online",
+    updated_at: new Date()
+  })
+  .eq("id", driverId);
+
+if (error) {
+  console.log("Update error:", error);
+}
 
         setStatus("online");
       },
