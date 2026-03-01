@@ -8,12 +8,21 @@ export default function Driver() {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    if (!tracking || !driverId) return;
+  if (!tracking) return;
 
-    if (!navigator.geolocation) {
-      setMessage("Geolocation not supported");
-      return;
+  navigator.permissions.query({ name: "geolocation" }).then(result => {
+    alert("Permission state: " + result.state);
+  });
+
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      alert("GPS OK");
+    },
+    (err) => {
+      alert("GPS ERROR: " + err.message);
     }
+  );
+}, [tracking]);
 
     const watchId = navigator.geolocation.watchPosition(
       async (position) => {
