@@ -1,3 +1,19 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+html {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+body {
+  @apply bg-slate-50 text-slate-900;
+}
+
+input, select, textarea {
+  @apply border border-slate-300 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-slate-900 transition;
+}
+
+button {
+  @apply transition active:scale-[.98];
+}
