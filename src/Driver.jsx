@@ -7,7 +7,17 @@ export default function Driver() {
   const [status, setStatus] = useState("offline");
 
   useEffect(() => {
-    if (!tracking || !driverId) return;
+  if (!tracking) return;
+
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      alert("GPS WORKING: " + position.coords.latitude);
+    },
+    (err) => {
+      alert("GPS ERROR: " + err.message);
+    }
+  );
+}, [tracking]);
 
     const watchId = navigator.geolocation.watchPosition(
       async (position) => {
