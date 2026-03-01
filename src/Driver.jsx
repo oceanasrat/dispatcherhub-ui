@@ -1,12 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "./lib/supabase";
 
 export default function Driver() {
   const [driverId, setDriverId] = useState("");
   const [tracking, setTracking] = useState(false);
   const [status, setStatus] = useState("offline");
-  const [watchId, setWatchId] = useState(null);
 
+  const watchRef = useRef(null);
+
+  // ---------------------------
+  // START TRACKING
+  // ---------------------------
   const startTracking = () => {
     if (!driverId) {
       alert("Enter Driver ID first");
@@ -18,32 +22,47 @@ export default function Driver() {
       return;
     }
 
-    // FORCE permission request directly from button click
     navigator.geolocation.getCurrentPosition(
       () => {
-        // Permission granted — now start watch
         const id = navigator.geolocation.watchPosition(
           async (position) => {
             const { latitude, longitude } = position.coords;
+            const now = new Date().toISOString();
 
-            const { error } = await supabase
+            // 1️⃣ Update live driver table
+            const { error: updateError } = await supabase
               .from("drivers")
               .update({
                 lat: latitude,
                 lng: longitude,
                 status: "online",
-                updated_at: new Date(),
+                updated_at: now,
               })
               .eq("id", driverId);
 
-            if (error) {
-              console.log("Update error:", error);
-            } else {
-              setStatus("online");
+            if (updateError) {
+              console.error("Driver update error:", updateError);
+              return;
             }
+
+            // 2️⃣ Insert location history
+            const { error: insertError } = await supabase
+              .from("driver_locations")
+              .insert({
+                driver_id: driverId,
+                lat: latitude,
+                lng: longitude,
+                created_at: now,
+              });
+
+            if (insertError) {
+              console.error("Location insert error:", insertError);
+            }
+
+            setStatus("online");
           },
           (err) => {
-            console.log("Watch error:", err);
+            console.error("Watch error:", err);
             setStatus("offline");
           },
           {
@@ -53,7 +72,7 @@ export default function Driver() {
           }
         );
 
-        setWatchId(id);
+        watchRef.current = id;
         setTracking(true);
       },
       (err) => {
@@ -66,19 +85,35 @@ export default function Driver() {
     );
   };
 
+  // ---------------------------
+  // STOP TRACKING
+  // ---------------------------
   const stopTracking = async () => {
-    if (watchId !== null) {
-      navigator.geolocation.clearWatch(watchId);
+    if (watchRef.current !== null) {
+      navigator.geolocation.clearWatch(watchRef.current);
+      watchRef.current = null;
     }
 
     await supabase
       .from("drivers")
-      .update({ status: "offline" })
+      .update({
+        status: "offline",
+        updated_at: new Date().toISOString(),
+      })
       .eq("id", driverId);
 
     setTracking(false);
     setStatus("offline");
   };
+
+  // Clean up if page closed
+  useEffect(() => {
+    return () => {
+      if (watchRef.current !== null) {
+        navigator.geolocation.clearWatch(watchRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-6">
