@@ -6,25 +6,51 @@ export default async function handler(req, res) {
 
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
-      return res.status(500).json({ error: "Missing OPENAI_API_KEY in Vercel" });
+      return res.status(500).json({
+        error: "Missing OPENAI_API_KEY in Vercel environment variables",
+      });
     }
 
     const { text } = req.body ?? {};
     if (!text || typeof text !== "string") {
-      return res.status(400).json({ error: "Missing text" });
+      return res.status(400).json({ error: "Missing text input" });
     }
 
     const prompt = `
-You are a dispatcher assistant. Extract load details from the user's text.
-Return ONLY valid JSON with keys:
-origin (string), destination (string), rate (number), status (one of: booked,in_transit,delivered,invoiced,paid).
-If a field is missing, use empty string for origin/destination, null for rate, and "booked" for status.
+You are an expert truck dispatcher AI assistant.
 
-User text:
+Analyze the broker/load message below.
+
+Extract structured data and evaluate profitability.
+
+Return ONLY valid JSON with this exact structure:
+
+{
+  "origin": "",
+  "destination": "",
+  "rate": number | null,
+  "estimated_miles": number | null,
+  "rate_per_mile": number | null,
+  "suggested_rate": number | null,
+  "dispatcher_commission_10_percent": number | null,
+  "risk_level": "low" | "medium" | "high",
+  "analysis": ""
+}
+
+Rules:
+- If rate missing, use null
+- If miles missing, estimate reasonably
+- Risk is HIGH if rate_per_mile < 1.8
+- Risk is MEDIUM if rate_per_mile between 1.8 and 2.2
+- Risk is LOW if rate_per_mile > 2.2
+- Keep analysis short and professional
+- Return JSON only (no extra text)
+
+Broker Message:
 ${text}
 `.trim();
 
-    const r = await fetch("https://api.openai.com/v1/responses", {
+    const openaiResponse = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -37,37 +63,59 @@ ${text}
       }),
     });
 
-    if (!r.ok) {
-      const errText = await r.text();
-      return res.status(500).json({ error: "OpenAI error", details: errText });
+    if (!openaiResponse.ok) {
+      const errText = await openaiResponse.text();
+      return res.status(500).json({
+        error: "OpenAI API error",
+        details: errText,
+      });
     }
 
-    const data = await r.json();
+    const data = await openaiResponse.json();
 
-    // Pull the text output in a robust way
-    let out = "";
+    // Extract model text safely
+    let outputText = "";
+
     try {
-      out =
+      outputText =
         data.output?.[0]?.content?.[0]?.text ??
         data.output_text ??
         "";
     } catch {
-      out = data.output_text ?? "";
+      outputText = data.output_text ?? "";
     }
 
-    // Ensure JSON parse
+    if (!outputText) {
+      return res.status(500).json({
+        error: "AI returned empty response",
+      });
+    }
+
+    // Try parsing JSON strictly
     let parsed;
+
     try {
-      parsed = JSON.parse(out);
+      parsed = JSON.parse(outputText);
     } catch {
-      // If model added extra text, attempt to salvage JSON block
-      const m = out.match(/\{[\s\S]*\}/);
-      if (!m) throw new Error("Model did not return JSON");
-      parsed = JSON.parse(m[0]);
+      // Attempt to extract JSON block if model added extra text
+      const match = outputText.match(/\{[\s\S]*\}/);
+      if (!match) {
+        return res.status(500).json({
+          error: "AI did not return valid JSON",
+          raw: outputText,
+        });
+      }
+      parsed = JSON.parse(match[0]);
     }
 
-    return res.status(200).json({ ok: true, data: parsed });
-  } catch (e) {
-    return res.status(500).json({ error: e.message || "Server error" });
+    return res.status(200).json({
+      ok: true,
+      data: parsed,
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      error: error.message || "Server error",
+    });
   }
 }
