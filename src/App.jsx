@@ -1,7 +1,7 @@
 import Driver from "./Driver";
 import { useEffect, useState } from "react";
 import { supabase } from "./lib/supabase";
-
+import LiveMap from "./LiveMap";
 const STATUS = ["booked","in_transit","delivered","invoiced","paid"];
 
 export default function App() {
@@ -85,8 +85,10 @@ export default function App() {
   useEffect(()=>{ fetchLoads(); },[]);
 
   // 🔴 DRIVER MODE RETURN
-  if (mode === "driver") {
-    return (
+  const [mode, setMode] = useState("dispatcher");
+
+if (mode === "driver") return <Driver />;
+if (mode === "map") return <LiveMap />;
       <div>
         <div className="p-4 bg-slate-100">
           <button
@@ -114,6 +116,12 @@ export default function App() {
           >
             Switch to Driver Mode
           </button>
+          <button
+  onClick={() => setMode("map")}
+  className="text-xs text-purple-600 ml-3"
+>
+  Live Map
+</button>
         </div>
 
         <h1 className="text-4xl font-bold mb-6 bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text">
