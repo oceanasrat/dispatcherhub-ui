@@ -1,11 +1,11 @@
-import { createClient } from "@supabase/supabase-js";
+const { createClient } = require("@supabase/supabase-js");
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   try {
     const { driver_id } = req.query;
 
@@ -17,7 +17,6 @@ export default async function handler(req, res) {
       .from("driver_locations")
       .select("*")
       .eq("driver_id", driver_id)
-      .order("created_at", { ascending: false })
       .limit(20);
 
     if (error) {
@@ -26,13 +25,10 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       driver_id,
-      location_count: data.length,
-      locations: data
+      location_count: data.length
     });
 
   } catch (err) {
-    return res.status(500).json({
-      crash: err.message
-    });
+    return res.status(500).json({ crash: err.message });
   }
-}
+};
