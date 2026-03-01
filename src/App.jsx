@@ -33,7 +33,45 @@ function LoadsView() {
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState("");
   const [form, setForm] = useState({ origin:"", destination:"", rate:"", status:"booked" });
+  const [aiText, setAiText] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
 
+  async function aiFill() {
+    setMsg("");
+    const text = aiText.trim();
+    if (!text) {
+      setMsg("Paste load details for AI first.");
+      return;
+    }
+    setAiLoading(true);
+    try {
+      const r = await fetch("/api/ai-load", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j?.error || "AI request failed");
+
+      const d = j.data || {};
+      setForm((f) => ({
+        ...f,
+        origin: typeof d.origin === "string" ? d.origin : f.origin,
+        destination: typeof d.destination === "string" ? d.destination : f.destination,
+        rate:
+          d.rate === null || d.rate === undefined || Number.isNaN(Number(d.rate))
+            ? f.rate
+            : String(Number(d.rate)),
+        status: STATUS.includes(d.status) ? d.status : f.status,
+      }));
+
+      setMsg("AI filled the form. Review then click Create load.");
+    } catch (e) {
+      setMsg(String(e.message || e));
+    } finally {
+      setAiLoading(false);
+    }
+  }
   async function fetchLoads() {
     setLoading(true);
     const { data, error } = await supabase
