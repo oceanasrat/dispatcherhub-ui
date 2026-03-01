@@ -3,10 +3,11 @@ import { supabase } from "./lib/supabase";
 
 export default function Driver() {
   const [driverId, setDriverId] = useState("");
+  const [tracking, setTracking] = useState(false);
   const [status, setStatus] = useState("offline");
 
   useEffect(() => {
-    if (!driverId) return;
+    if (!tracking || !driverId) return;
 
     const watchId = navigator.geolocation.watchPosition(
       async (position) => {
@@ -31,7 +32,7 @@ export default function Driver() {
     );
 
     return () => navigator.geolocation.clearWatch(watchId);
-  }, [driverId]);
+  }, [tracking, driverId]);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-6">
@@ -47,6 +48,13 @@ export default function Driver() {
           onChange={(e) => setDriverId(e.target.value)}
           className="w-full border p-2 rounded mb-4"
         />
+
+        <button
+          onClick={() => setTracking(true)}
+          className="w-full bg-green-600 text-white py-2 rounded-lg mb-4"
+        >
+          Start Tracking
+        </button>
 
         <div className="text-center">
           Status:
