@@ -5,70 +5,72 @@ export default function Driver() {
   const [driverId, setDriverId] = useState("");
   const [tracking, setTracking] = useState(false);
   const [status, setStatus] = useState("offline");
-  const [message, setMessage] = useState("");
-
-  useEffect(() => {
-  if (!tracking) return;
-
-  navigator.permissions.query({ name: "geolocation" }).then(result => {
-    alert("Permission state: " + result.state);
-  });
-
-  navigator.geolocation.getCurrentPosition(
-    (pos) => {
-      alert("GPS OK");
-    },
-    (err) => {
-      alert("GPS ERROR: " + err.message);
-    }
-  );
-}, [tracking]);
-
-    const watchId = navigator.geolocation.watchPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
-
-        const { error } = await supabase
-          .from("drivers")
-          .update({
-            lat: latitude,
-            lng: longitude,
-            status: "online",
-            updated_at: new Date().toISOString()
-          })
-          .eq("id", driverId);
-
-        if (error) {
-          console.error("Update error:", error);
-          setMessage("Database update failed");
-        } else {
-          setStatus("online");
-          setMessage("Location updating...");
-        }
-      },
-      (err) => {
-        console.error("GPS error:", err);
-        setMessage("Location permission denied");
-      },
-      {
-        enableHighAccuracy: true,
-        maximumAge: 0,
-        timeout: 10000
-      }
-    );
-
-    return () => navigator.geolocation.clearWatch(watchId);
-  }, [tracking, driverId]);
+  const [watchId, setWatchId] = useState(null);
 
   const startTracking = () => {
     if (!driverId) {
-      alert("Please enter your Driver ID");
+      alert("Enter Driver ID first");
       return;
     }
-    setTracking(true);
+
+    if (!navigator.geolocation) {
+      alert("Geolocation not supported");
+      return;
+    }
+
+    // FORCE permission request directly from button click
+    navigator.geolocation.getCurrentPosition(
+      () => {
+        // Permission granted — now start watch
+        const id = navigator.geolocation.watchPosition(
+          async (position) => {
+            const { latitude, longitude } = position.coords;
+
+            const { error } = await supabase
+              .from("drivers")
+              .update({
+                lat: latitude,
+                lng: longitude,
+                status: "online",
+                updated_at: new Date(),
+              })
+              .eq("id", driverId);
+
+            if (error) {
+              console.log("Update error:", error);
+            } else {
+              setStatus("online");
+            }
+          },
+          (err) => {
+            console.log("Watch error:", err);
+            setStatus("offline");
+          },
+          {
+            enableHighAccuracy: true,
+            maximumAge: 0,
+            timeout: 10000,
+          }
+        );
+
+        setWatchId(id);
+        setTracking(true);
+      },
+      (err) => {
+        alert("Permission denied: " + err.message);
+        setStatus("offline");
+      },
+      {
+        enableHighAccuracy: true,
+      }
+    );
   };
 
   const stopTracking = async () => {
+    if (watchId !== null) {
+      navigator.geolocation.clearWatch(watchId);
+    }
+
     await supabase
       .from("drivers")
       .update({ status: "offline" })
@@ -76,7 +78,6 @@ export default function Driver() {
 
     setTracking(false);
     setStatus("offline");
-    setMessage("Tracking stopped");
   };
 
   return (
@@ -110,24 +111,20 @@ export default function Driver() {
           </button>
         )}
 
-        <div className="text-center mb-2">
+        <div className="text-center">
           Status:
           <span
             className={`ml-2 font-semibold ${
-              status === "online" ? "text-green-600" : "text-red-600"
+              status === "online"
+                ? "text-green-600"
+                : "text-red-600"
             }`}
           >
             {status}
           </span>
         </div>
 
-        {message && (
-          <div className="text-xs text-gray-500 text-center">
-            {message}
-          </div>
-        )}
-
-        <p className="text-xs text-gray-400 mt-4 text-center">
+        <p className="text-xs text-gray-500 mt-4 text-center">
           Keep this page open while driving.
         </p>
       </div>
