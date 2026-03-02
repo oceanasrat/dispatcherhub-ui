@@ -9,16 +9,28 @@ export default function LiveMap() {
 
   // Fetch drivers every 5 seconds
   useEffect(() => {
-    const fetchDrivers = async () => {
-      const { data, error } = await supabase.from("drivers").select("*");
-      if (!error) setDrivers(data || []);
-    };
+  async function loadDrivers() {
+    const { data } = await supabase.from("drivers").select("*");
+    setDrivers(data || []);
+  }
 
-    fetchDrivers();
-    const interval = setInterval(fetchDrivers, 5000);
+  loadDrivers();
 
-    return () => clearInterval(interval);
-  }, []);
+  const channel = supabase
+    .channel("drivers-changes")
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "drivers" },
+      (payload) => {
+        loadDrivers();
+      }
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}, []);
 
   // Initialize map only once
   useEffect(() => {
