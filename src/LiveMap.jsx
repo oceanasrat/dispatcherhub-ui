@@ -56,11 +56,11 @@ export default function LiveMap() {
 
       validDrivers.forEach((driver) => {
         const color =
-          driver.status === "online"
-            ? "green"
-            : driver.status === "issue"
-            ? "red"
-            : "gray";
+  driver.stopped
+    ? "red"
+    : driver.status === "online"
+    ? "green"
+    : "gray";
 
         L.circleMarker([driver.lat, driver.lng], {
           color,
