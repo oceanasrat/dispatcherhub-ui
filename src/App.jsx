@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "./lib/supabase";
 import Driver from "./Driver";
 import LiveMap from "./LiveMap";
+import AlertsPanel from "./AlertsPanel";
 
 const STATUS = ["booked","in_transit","delivered","invoiced","paid"];
 
@@ -142,21 +143,23 @@ export default function App() {
       <div className="max-w-6xl mx-auto">
 
         {/* MODE BUTTONS */}
-        <div className="flex justify-end mb-3 space-x-4">
-          <button
-            onClick={() => setMode("driver")}
-            className="text-sm text-indigo-600 underline"
-          >
-            Driver Mode
-          </button>
+      <div className="flex justify-end mb-3 space-x-4">
+        <button
+          onClick={() => setMode("driver")}
+          className="text-sm text-indigo-600 underline"
+        >
+          Driver Mode
+        </button>
 
-          <button
-            onClick={() => setMode("map")}
-            className="text-sm text-purple-600 underline"
-          >
-            Live Map
-          </button>
-        </div>
+        <button
+          onClick={() => setMode("map")}
+          className="text-sm text-purple-600 underline"
+        >
+          Live Map
+        </button>
+      </div>
+
+      <AlertsPanel />
 
         <h1 className="text-4xl font-bold mb-6 bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text">
           DispatcherHub PRO
