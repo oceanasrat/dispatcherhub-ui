@@ -5,10 +5,23 @@ export default function AlertsPanel() {
   const [alerts, setAlerts] = useState([]);
 
   useEffect(() => {
-    fetchAlerts();
-    const interval = setInterval(fetchAlerts, 5000);
-    return () => clearInterval(interval);
-  }, []);
+  fetchAlerts();
+
+  const channel = supabase
+    .channel("alerts-changes")
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "alerts" },
+      () => {
+        fetchAlerts();
+      }
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}, []);
 
   async function fetchAlerts() {
     const { data } = await supabase
