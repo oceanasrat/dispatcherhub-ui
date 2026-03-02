@@ -26,40 +26,54 @@ export default function Driver() {
       () => {
         const id = navigator.geolocation.watchPosition(
           async (position) => {
-            const { latitude, longitude } = position.coords;
-            const now = new Date().toISOString();
+            try {
+              const { latitude, longitude } = position.coords;
+              const now = new Date().toISOString();
 
-            // 1️⃣ Update live driver table
-            const { error: updateError } = await supabase
-              .from("drivers")
-              .update({
-                lat: latitude,
-                lng: longitude,
-                status: "online",
-                updated_at: now,
-              })
-              .eq("id", driverId);
+              // 1️⃣ Update driver live location
+              const { error: updateError } = await supabase
+                .from("drivers")
+                .update({
+                  lat: latitude,
+                  lng: longitude,
+                  status: "online",
+                  updated_at: now,
+                })
+                .eq("id", driverId);
 
-            if (updateError) {
-              console.error("Driver update error:", updateError);
-              return;
+              if (updateError) {
+                console.error("Driver update error:", updateError);
+                return;
+              }
+
+              // 2️⃣ Insert location history
+              const { error: insertError } = await supabase
+                .from("driver_locations")
+                .insert({
+                  driver_id: driverId,
+                  lat: latitude,
+                  lng: longitude,
+                  created_at: now,
+                });
+
+              if (insertError) {
+                console.error("Location insert error:", insertError);
+              }
+
+              // 3️⃣ Trigger AI monitoring
+              try {
+                await fetch(
+                  `/api/analyze-driver?driver_id=${driverId}`
+                );
+              } catch (aiError) {
+                console.error("AI monitor error:", aiError);
+              }
+
+              setStatus("online");
+            } catch (err) {
+              console.error("Tracking error:", err);
+              setStatus("offline");
             }
-
-            // 2️⃣ Insert location history
-            const { error: insertError } = await supabase
-              .from("driver_locations")
-              .insert({
-                driver_id: driverId,
-                lat: latitude,
-                lng: longitude,
-                created_at: now,
-              });
-
-            if (insertError) {
-              console.error("Location insert error:", insertError);
-            }
-
-            setStatus("online");
           },
           (err) => {
             console.error("Watch error:", err);
@@ -106,7 +120,7 @@ export default function Driver() {
     setStatus("offline");
   };
 
-  // Clean up if page closed
+  // Cleanup
   useEffect(() => {
     return () => {
       if (watchRef.current !== null) {
