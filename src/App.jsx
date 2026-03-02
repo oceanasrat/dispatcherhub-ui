@@ -4,106 +4,75 @@ import Driver from "./Driver";
 import LiveMap from "./LiveMap";
 import AlertsPanel from "./AlertsPanel";
 
-const STATUS = ["booked","in_transit","delivered","invoiced","paid"];
-
 export default function App() {
 
-  // 🔵 MODE SWITCH (ONLY ONCE!)
   const [mode, setMode] = useState("dispatcher");
 
-  const [loads,setLoads] = useState([]);
-  const [form,setForm] = useState({
-    origin:"",
-    destination:"",
-    rate:"",
-    status:"booked"
+  // JOB STATE
+  const [jobs, setJobs] = useState([]);
+  const [drivers, setDrivers] = useState([]);
+
+  const [form, setForm] = useState({
+    type: "freight",
+    title: "",
+    origin: "",
+    destination: "",
+    pickup_time: "",
+    revenue: ""
   });
-  const [msg,setMsg] = useState("");
 
-  // AI STATE
-  const [aiText,setAiText] = useState("");
-  const [aiResult,setAiResult] = useState("");
-  const [aiLoading,setAiLoading] = useState(false);
+  useEffect(() => {
+    fetchJobs();
+    fetchDrivers();
+  }, []);
 
-  async function fetchLoads(){
-    const {data} = await supabase
-      .from("loads")
+  async function fetchJobs() {
+    const { data } = await supabase
+      .from("jobs")
       .select("*")
-      .order("id");
+      .order("created_at", { ascending: false });
 
-    setLoads(data || []);
+    setJobs(data || []);
   }
 
-  async function createLoad(e){
+  async function fetchDrivers() {
+    const { data } = await supabase
+      .from("drivers")
+      .select("*");
+
+    setDrivers(data || []);
+  }
+
+  async function createJob(e) {
     e.preventDefault();
 
-    const {error} = await supabase.from("loads").insert({
-      origin:form.origin,
-      destination:form.destination,
-      rate:Number(form.rate),
-      status:form.status
+    await supabase.from("jobs").insert({
+      ...form,
+      status: "pending"
     });
 
-    if(error) setMsg(error.message);
-    else{
-      setMsg("Load Created");
-      setForm({
-        origin:"",
-        destination:"",
-        rate:"",
-        status:"booked"
-      });
-      fetchLoads();
-    }
+    setForm({
+      type: "freight",
+      title: "",
+      origin: "",
+      destination: "",
+      pickup_time: "",
+      revenue: ""
+    });
+
+    fetchJobs();
   }
 
-  async function updateStatus(id,status){
+  async function assignDriver(jobId, driverId) {
     await supabase
-      .from("loads")
-      .update({status})
-      .eq("id",id);
+      .from("jobs")
+      .update({ assigned_driver_id: driverId })
+      .eq("id", jobId);
 
-    fetchLoads();
+    fetchJobs();
   }
 
-  async function handleAiFill(){
-    if(!aiText) return;
-
-    setAiLoading(true);
-    setAiResult("Analyzing...");
-
-    try{
-      const res = await fetch("/api/ai-load",{
-        method:"POST",
-        headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({ text: aiText })
-      });
-
-      const data = await res.json();
-
-      if(data.origin){
-        setForm({
-          origin: data.origin || "",
-          destination: data.destination || "",
-          rate: data.rate || "",
-          status:"booked"
-        });
-
-        setAiResult(data.analysis || "Load extracted.");
-      } else {
-        setAiResult("AI failed.");
-      }
-
-    } catch(err){
-      setAiResult("Error connecting AI.");
-    }
-
-    setAiLoading(false);
-  }
-
-  useEffect(()=>{ fetchLoads(); },[]);
-
-  // 🔴 DRIVER MODE
+  // DRIVER MODE
   if (mode === "driver") {
     return (
       <div>
@@ -120,7 +89,7 @@ export default function App() {
     );
   }
 
-  // 🟣 MAP MODE
+  // MAP MODE
   if (mode === "map") {
     return (
       <div>
@@ -137,143 +106,135 @@ export default function App() {
     );
   }
 
-  // 🟢 DISPATCHER UI
+  // DISPATCHER MODE
   return (
     <div className="min-h-screen p-6 bg-slate-100">
       <div className="max-w-6xl mx-auto">
 
         {/* MODE BUTTONS */}
-      <div className="flex justify-end mb-3 space-x-4">
-        <button
-          onClick={() => setMode("driver")}
-          className="text-sm text-indigo-600 underline"
-        >
-          Driver Mode
-        </button>
+        <div className="flex justify-end mb-4 space-x-4">
+          <button
+            onClick={() => setMode("driver")}
+            className="text-sm text-indigo-600 underline"
+          >
+            Driver Mode
+          </button>
 
-        <button
-          onClick={() => setMode("map")}
-          className="text-sm text-purple-600 underline"
-        >
-          Live Map
-        </button>
-      </div>
+          <button
+            onClick={() => setMode("map")}
+            className="text-sm text-purple-600 underline"
+          >
+            Live Map
+          </button>
+        </div>
 
-      <AlertsPanel />
+        <AlertsPanel />
 
         <h1 className="text-4xl font-bold mb-6 bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text">
-          DispatcherHub PRO
+          Universal Dispatch Control
         </h1>
 
-        <div className="grid md:grid-cols-3 gap-6 mb-6">
+        {/* CREATE JOB */}
+        <div className="bg-white p-6 rounded-xl shadow mb-6">
+          <h2 className="font-semibold mb-4 text-lg">Create Job</h2>
 
-          {/* AI PANEL */}
-          <div className="bg-white p-6 rounded-2xl shadow-lg md:col-span-3">
-            <h2 className="font-semibold mb-3 text-purple-600">
-              AI Dispatcher Assistant
-            </h2>
+          <form onSubmit={createJob} className="grid md:grid-cols-3 gap-3">
 
-            <textarea
-              placeholder="Paste broker message here..."
-              value={aiText}
-              onChange={e=>setAiText(e.target.value)}
-              className="w-full p-3 border rounded-lg mb-3"
-              rows="3"
+            <select
+              value={form.type}
+              onChange={e => setForm({...form, type: e.target.value})}
+              className="border rounded px-3 py-2"
+            >
+              <option value="freight">Freight</option>
+              <option value="delivery">Delivery</option>
+              <option value="shuttle">Shuttle</option>
+            </select>
+
+            <input
+              placeholder="Title"
+              value={form.title}
+              onChange={e => setForm({...form, title: e.target.value})}
+              className="border rounded px-3 py-2"
             />
 
-            <button
-              onClick={handleAiFill}
-              disabled={aiLoading}
-              className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-4 py-2 rounded-lg"
-            >
-              {aiLoading ? "Analyzing..." : "Extract Load With AI"}
+            <input
+              placeholder="Origin"
+              value={form.origin}
+              onChange={e => setForm({...form, origin: e.target.value})}
+              className="border rounded px-3 py-2"
+            />
+
+            <input
+              placeholder="Destination"
+              value={form.destination}
+              onChange={e => setForm({...form, destination: e.target.value})}
+              className="border rounded px-3 py-2"
+            />
+
+            <input
+              type="datetime-local"
+              value={form.pickup_time}
+              onChange={e => setForm({...form, pickup_time: e.target.value})}
+              className="border rounded px-3 py-2"
+            />
+
+            <input
+              placeholder="Revenue"
+              value={form.revenue}
+              onChange={e => setForm({...form, revenue: e.target.value})}
+              className="border rounded px-3 py-2"
+            />
+
+            <button className="bg-blue-600 text-white rounded px-4 py-2 col-span-full">
+              Create Job
             </button>
 
-            {aiResult && (
-              <div className="mt-4 p-3 bg-purple-50 rounded-lg text-sm text-slate-700">
-                {aiResult}
+          </form>
+        </div>
+
+        {/* JOB LIST */}
+        <div className="bg-white p-6 rounded-xl shadow">
+          <h2 className="font-semibold mb-4 text-lg">Active Jobs</h2>
+
+          {jobs.map(job => (
+            <div key={job.id} className="border rounded p-4 mb-3 bg-gray-50">
+
+              <div className="font-semibold">
+                {job.type.toUpperCase()} — {job.title}
               </div>
-            )}
-          </div>
 
-          {/* CREATE LOAD */}
-          <div className="bg-white p-6 rounded-2xl shadow-lg">
-            <h2 className="font-semibold mb-4">Create Load</h2>
+              <div className="text-sm text-gray-600">
+                {job.origin} → {job.destination}
+              </div>
 
-            <form onSubmit={createLoad} className="space-y-3">
-              <input
-                className="w-full p-2 border rounded-lg"
-                placeholder="Origin"
-                value={form.origin}
-                onChange={e=>setForm({...form,origin:e.target.value})}
-              />
+              <div className="text-sm">
+                Revenue: ${job.revenue || 0}
+              </div>
 
-              <input
-                className="w-full p-2 border rounded-lg"
-                placeholder="Destination"
-                value={form.destination}
-                onChange={e=>setForm({...form,destination:e.target.value})}
-              />
-
-              <input
-                className="w-full p-2 border rounded-lg"
-                placeholder="Rate"
-                value={form.rate}
-                onChange={e=>setForm({...form,rate:e.target.value})}
-              />
-
-              <select
-                className="w-full p-2 border rounded-lg"
-                value={form.status}
-                onChange={e=>setForm({...form,status:e.target.value})}
-              >
-                {STATUS.map(s=><option key={s}>{s}</option>)}
-              </select>
-
-              <button className="bg-gradient-to-r from-blue-600 to-purple-600 text-white w-full py-2 rounded-lg">
-                Create
-              </button>
-            </form>
-
-            {msg && <p className="text-sm text-blue-600 mt-2">{msg}</p>}
-          </div>
-
-          {/* LOADS LIST */}
-          <div className="md:col-span-2 bg-white p-6 rounded-2xl shadow-lg">
-            <h2 className="font-semibold mb-4">Loads</h2>
-
-            <div className="space-y-3">
-              {loads.map(l=>(
-                <div
-                  key={l.id}
-                  className="flex justify-between items-center p-4 bg-slate-50 rounded-xl"
+              <div className="mt-2">
+                <select
+                  value={job.assigned_driver_id || ""}
+                  onChange={(e) => assignDriver(job.id, e.target.value)}
+                  className="border rounded px-2 py-1 text-sm"
                 >
-                  <div>
-                    <div className="font-semibold">
-                      {l.origin} → {l.destination}
-                    </div>
-                    <div className="text-sm text-slate-500">
-                      ${l.rate}
-                    </div>
-                  </div>
+                  <option value="">Assign Driver</option>
+                  {drivers.map(d => (
+                    <option key={d.id} value={d.id}>
+                      {d.name || d.truck_number}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-                  <select
-                    value={l.status}
-                    onChange={e=>updateStatus(l.id,e.target.value)}
-                    className="bg-white border rounded-lg p-1"
-                  >
-                    {STATUS.map(s=><option key={s}>{s}</option>)}
-                  </select>
-                </div>
-              ))}
-
-              {loads.length===0 &&
-                <p className="text-slate-400">No loads yet</p>
-              }
             </div>
-          </div>
+          ))}
+
+          {jobs.length === 0 &&
+            <p className="text-gray-400">No jobs yet</p>
+          }
 
         </div>
+
       </div>
     </div>
   );
