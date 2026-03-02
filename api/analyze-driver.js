@@ -69,7 +69,7 @@ export default async function handler(req, res) {
     let riskIncrease = 0;
 
     // STOP RULE (serious stop)
-    if (distance < 100 && minutes > 15) {
+    if (distance < 100 && minutes > 1) {
       stopped = true;
       riskIncrease = 30;
     }
