@@ -1,19 +1,3 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-html {
-  font-family: 'Inter', system-ui, sans-serif;
-}
-
-body {
-  @apply bg-gradient-to-br from-slate-50 to-blue-50 text-slate-900;
-}
-
-input, select {
-  @apply border rounded-xl px-3 py-2 w-full;
-}
-
-button {
-  @apply rounded-xl px-4 py-2 font-medium transition active:scale-95;
-}
