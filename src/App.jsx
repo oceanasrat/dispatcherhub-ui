@@ -73,74 +73,99 @@ export default function App() {
 
   return (
 
-    <div style={{ padding:40 }}>
+<div className="min-h-screen bg-gray-100 p-6">
 
-      <h1>Universal Dispatch Control</h1>
+  <div className="max-w-4xl mx-auto">
 
-      <h2>Create Job</h2>
+    <h1 className="text-3xl font-bold mb-6">
+      Universal Dispatch Control
+    </h1>
 
-      <input
-        placeholder="Title"
-        value={title}
-        onChange={(e)=>setTitle(e.target.value)}
-      />
+    <div className="bg-white p-6 rounded-lg shadow mb-8">
 
-      <br/>
+      <h2 className="text-xl font-semibold mb-4">
+        Create Job
+      </h2>
 
-      <input
-        placeholder="Origin"
-        value={origin}
-        onChange={(e)=>setOrigin(e.target.value)}
-      />
+      <div className="grid grid-cols-2 gap-4">
 
-      <br/>
+        <input
+          className="border p-3 rounded"
+          placeholder="Title"
+          value={title}
+          onChange={(e)=>setTitle(e.target.value)}
+        />
 
-      <input
-        placeholder="Destination"
-        value={destination}
-        onChange={(e)=>setDestination(e.target.value)}
-      />
+        <input
+          className="border p-3 rounded"
+          placeholder="Revenue"
+          value={revenue}
+          onChange={(e)=>setRevenue(e.target.value)}
+        />
 
-      <br/>
+        <input
+          className="border p-3 rounded"
+          placeholder="Origin"
+          value={origin}
+          onChange={(e)=>setOrigin(e.target.value)}
+        />
 
-      <input
-        placeholder="Revenue"
-        value={revenue}
-        onChange={(e)=>setRevenue(e.target.value)}
-      />
+        <input
+          className="border p-3 rounded"
+          placeholder="Destination"
+          value={destination}
+          onChange={(e)=>setDestination(e.target.value)}
+        />
 
-      <br/>
+      </div>
 
-      <button onClick={createJob}>
+      <button
+        className="mt-4 bg-blue-600 text-white px-5 py-3 rounded hover:bg-blue-700"
+        onClick={createJob}
+      >
         Create Job
       </button>
 
-      <h2 style={{ marginTop:40 }}>Active Jobs</h2>
+    </div>
+
+
+    <div className="bg-white p-6 rounded-lg shadow">
+
+      <h2 className="text-xl font-semibold mb-4">
+        Active Jobs
+      </h2>
 
       {jobs.map(job => (
 
         <div
           key={job.id}
-          style={{
-            border:"1px solid #ddd",
-            padding:10,
-            marginBottom:10
-          }}
+          className="border rounded p-4 mb-3 flex justify-between items-center"
         >
 
-          <b>{job.title}</b>
+          <div>
 
-          <p>
-            {job.origin} → {job.destination}
-          </p>
+            <b className="text-lg">
+              {job.title}
+            </b>
 
-          <p>Status: {job.status}</p>
+            <p className="text-gray-600">
+              {job.origin} → {job.destination}
+            </p>
+
+            <p className="text-sm">
+              Status: {job.status}
+            </p>
+
+          </div>
 
           <select
+            className="border p-2 rounded"
             onChange={(e)=>assignDriverToJob(e.target.value,job.id)}
           >
 
-            <option>Assign Driver</option>
+            <option>
+              Assign Driver
+            </option>
 
             {drivers.map(driver => (
 
@@ -160,5 +185,9 @@ export default function App() {
       ))}
 
     </div>
-  )
-}
+
+  </div>
+
+</div>
+
+)
