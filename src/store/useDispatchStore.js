@@ -1,5 +1,5 @@
 import { create } from "zustand"
-import { supabase, getUserCompany } from "../lib/supabase"
+import { supabase } from "../lib/supabase.js"
 
 export const useDispatchStore = create((set, get) => ({
 
@@ -18,39 +18,6 @@ export const useDispatchStore = create((set, get) => ({
   selectJob: (job) => set({ selectedJob: job }),
   selectDriver: (driver) => set({ selectedDriver: driver }),
 
-  // LOAD DRIVERS FROM DATABASE
-  loadDrivers: async () => {
-
-    const companyId = await getUserCompany()
-
-    const { data, error } = await supabase
-      .from("drivers")
-      .select("*")
-      .eq("company_id", companyId)
-
-    if (!error) {
-      set({ drivers: data })
-    }
-
-  },
-
-  // LOAD JOBS FROM DATABASE
-  loadJobs: async () => {
-
-    const companyId = await getUserCompany()
-
-    const { data, error } = await supabase
-      .from("jobs")
-      .select("*")
-      .eq("company_id", companyId)
-
-    if (!error) {
-      set({ jobs: data })
-    }
-
-  },
-
-  // ASSIGN DRIVER TO JOB
   assignDriverToJob: async (driverId, jobId) => {
 
     const { error } = await supabase
