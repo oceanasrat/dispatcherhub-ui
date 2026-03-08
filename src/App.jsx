@@ -31,7 +31,6 @@ export default function App() {
       .eq("company_id",companyId)
 
     if(data) setDrivers(data)
-
   }
 
   async function loadJobs(){
@@ -44,7 +43,6 @@ export default function App() {
       .eq("company_id",companyId)
 
     if(data) setJobs(data)
-
   }
 
   async function createJob(){
@@ -64,16 +62,13 @@ export default function App() {
       .select()
 
     if(data){
-
       setJobs([...jobs,...data])
 
       setTitle("")
       setOrigin("")
       setDestination("")
       setRevenue("")
-
     }
-
   }
 
   return (
@@ -165,6 +160,5 @@ export default function App() {
       ))}
 
     </div>
-
   )
 }
