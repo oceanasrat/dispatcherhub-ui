@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
-import { supabase, getUserCompany } from "./lib/supabase"
-import { useDispatchStore } from "./store/useDispatchStore"
+import { supabase, getUserCompany } from "./lib/supabase.js"
+import { useDispatchStore } from "./store/useDispatchStore.js"
 
 export default function App() {
 
@@ -16,12 +16,9 @@ export default function App() {
   const [destination,setDestination] = useState("")
   const [revenue,setRevenue] = useState("")
 
-  // LOAD DATA
   useEffect(()=>{
-
     loadDrivers()
     loadJobs()
-
   },[])
 
   async function loadDrivers(){
@@ -50,7 +47,6 @@ export default function App() {
 
   }
 
-  // CREATE JOB
   async function createJob(){
 
     const companyId = await getUserCompany()
@@ -85,8 +81,6 @@ export default function App() {
     <div style={{ padding:40 }}>
 
       <h1>Universal Dispatch Control</h1>
-
-      {/* CREATE JOB */}
 
       <h2>Create Job</h2>
 
@@ -126,8 +120,6 @@ export default function App() {
         Create Job
       </button>
 
-      {/* JOB LIST */}
-
       <h2 style={{ marginTop:40 }}>Active Jobs</h2>
 
       {jobs.map(job => (
@@ -153,9 +145,7 @@ export default function App() {
             onChange={(e)=>assignDriverToJob(e.target.value,job.id)}
           >
 
-            <option>
-              Assign Driver
-            </option>
+            <option>Assign Driver</option>
 
             {drivers.map(driver => (
 
